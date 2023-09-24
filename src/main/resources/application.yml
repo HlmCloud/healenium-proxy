@@ -7,7 +7,7 @@ spring:
         /images/banner.png
 proxy:
   selenium:
-    url: ${SELENIUM_SERVER_URL:http://localhost:4444/wd/hub}
+    url: ${SELENIUM_SERVER_URL:http://localhost:4444}
   appium:
     url: ${APPIUM_SERVER_URL:http://localhost:4723/wd/hub}
 #    url: ${APPIUM_SERVER_URL:https://healenium-demo:mobitru_ak_ToECWcNbBSqxAQzbJ9uWSL_8pRV2cO1UP3fT5i3useAsU6xocdO9UHM8o60B9IU0rkIi1i7VXZWpqiStZ0g@app.mobitru.com/wd/hub}
@@ -19,6 +19,12 @@ proxy:
   imitate:
     container:
       url: ${IMITATE_SERVICE:http://localhost:8000}
+  ai:
+    container:
+      url: ${AI_NODE_SERVICE:http://localhost:3000}
+  manager:
+    container:
+      url: ${HLM_MANAGER_SERVICE:http://localhost:9095}
 healing:
   healenabled: ${HEAL_ENABLED:true}
   recoverytries: ${RECOVERY_TRIES:1}

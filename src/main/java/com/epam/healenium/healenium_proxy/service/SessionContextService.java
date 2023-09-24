@@ -4,9 +4,12 @@ import com.epam.healenium.handlers.SelfHealingHandler;
 import com.epam.healenium.handlers.proxy.WebElementProxyHandler;
 import com.epam.healenium.healenium_proxy.config.ProxyConfig;
 import com.epam.healenium.healenium_proxy.mapper.JsonMapper;
+import com.epam.healenium.healenium_proxy.model.InfrastructureDto;
 import com.epam.healenium.healenium_proxy.model.SessionContext;
+import com.epam.healenium.healenium_proxy.rest.HealeniumRestService;
 import com.epam.healenium.healenium_proxy.restore.RestoreDriver;
 import com.epam.healenium.healenium_proxy.restore.RestoreDriverFactory;
+import com.typesafe.config.Config;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
@@ -36,15 +39,18 @@ public class SessionContextService {
     private final HttpServletRequestService servletRequestService;
     private final ProxyConfig proxyConfig;
     private final JsonMapper jsonMapper;
+    private final HealeniumRestService healeniumRestService;
 
     public SessionContextService(RestoreDriverFactory restoreDriverFactory,
                                  HttpServletRequestService servletRequestService,
                                  ProxyConfig proxyConfig,
-                                 JsonMapper jsonMapper) {
+                                 JsonMapper jsonMapper,
+                                 HealeniumRestService healeniumRestService) {
         this.restoreDriverFactory = restoreDriverFactory;
         this.servletRequestService = servletRequestService;
         this.proxyConfig = proxyConfig;
         this.jsonMapper = jsonMapper;
+        this.healeniumRestService = healeniumRestService;
     }
 
     @SneakyThrows
@@ -54,6 +60,16 @@ public class SessionContextService {
         String url = isAppium ? appiumUrl : seleniumUrl;
         SessionContext sessionContext = getDefaultSessionContext(url);
         log.info("[Proxy] Using Selenium server: {}", url);
+        Map<String, Object> hlmOptions = jsonMapper.getHlmOptions(requestBody);
+        String projectKey = (String) hlmOptions.get("projectKey");
+        if (projectKey == null) {
+            throw new RuntimeException("Error create session. Missing mandatory parameter \"projectKey\" of hlm:options.");
+        }
+        sessionContext.setProjectKey(projectKey);
+        sessionContext.setHlmOptions(hlmOptions);
+        InfrastructureDto infraDto = healeniumRestService.getServerSchemaByProjectKey(projectKey);
+        sessionContext.setInfraDto(infraDto);
+        log.info("[Proxy] Healenium projectKey: {}, Infra: {}", projectKey, infraDto);
         return sessionContext.setCreateSessionReqBody(requestBody);
     }
 
@@ -80,7 +96,8 @@ public class SessionContextService {
 
     public void fillRestoreSelfHealingHandlers(String currentSessionId, SessionContext sessionContext) {
         RestoreDriver restoreDriver = restoreDriverFactory.getRestoreService(sessionContext.getCapabilities());
-        restoreDriver.restoreSelfHealing(currentSessionId, sessionContext, proxyConfig.getConfig(currentSessionId));
+        Config projectConfig = proxyConfig.getProjectConfig(currentSessionId, sessionContext.getInfraDto(), sessionContext.getHlmOptions());
+        restoreDriver.restoreSelfHealing(currentSessionId, sessionContext, projectConfig);
     }
 
     public String submitSessionContext(String responseData, SessionContext sessionContext) {

@@ -1,5 +1,6 @@
 package com.epam.healenium.healenium_proxy.rest;
 
+import com.epam.healenium.healenium_proxy.model.InfrastructureDto;
 import com.epam.healenium.healenium_proxy.model.SessionContext;
 import com.epam.healenium.healenium_proxy.model.SessionDto;
 import lombok.extern.slf4j.Slf4j;
@@ -23,9 +24,13 @@ import java.util.stream.Collectors;
 public class HealeniumRestService {
 
     private static final String HEALENIUM_SESSION_INIT_PATH = "/healenium/session";
+    private static final String HEALENIUM_SERVER_URL = "/healenium/server/";
 
     @Value("${proxy.healenium.container.url}")
     private String healeniumContainerUrl;
+
+    @Value("${proxy.manager.container.url}")
+    private String managerContainerUrl;
 
     public void restoreSessionOnServer(URL addressOfRemoteServer, String sessionId, Map<String, Object> sessionCapabilities) {
         SessionDto sessionDto = new SessionDto(addressOfRemoteServer, sessionId, sessionCapabilities);
@@ -38,6 +43,18 @@ public class HealeniumRestService {
                 .bodyValue(sessionDto)
                 .retrieve()
                 .bodyToMono(Void.TYPE)
+                .block();
+    }
+
+    public InfrastructureDto getServerSchemaByProjectKey(String projectKey) {
+        return WebClient.builder()
+                .baseUrl(managerContainerUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build()
+                .get()
+                .uri("/tenant/key/" + projectKey)
+                .retrieve()
+                .bodyToMono(InfrastructureDto.class)
                 .block();
     }
 

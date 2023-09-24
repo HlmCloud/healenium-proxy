@@ -25,5 +25,9 @@ public class SessionContext {
     private CommandExecutor commandExecutor;
     private String createSessionReqBody;
     private Map<String, List<String>> storedSelectors = new HashMap<>();
+    private String projectKey;
+    private String serverSchema;
+    private InfrastructureDto infraDto;
+    private Map<String, Object> hlmOptions;
 
 }

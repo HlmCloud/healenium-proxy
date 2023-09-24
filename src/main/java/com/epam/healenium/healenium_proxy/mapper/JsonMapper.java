@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -61,6 +62,49 @@ public class JsonMapper {
         Map<String, Object> bodyMap = json.toType(requestBody, MAP_TYPE);
         Map<String, Object> capabilities = getCapabilities(bodyMap);
         return isMobile(capabilities);
+    }
+
+    public String getProjectKey(String requestBody) {
+        Map<String, Object> bodyMap = json.toType(requestBody, MAP_TYPE);
+        Map<String, Object> capabilities = getCapabilities(bodyMap);
+        return getProjectKey(capabilities);
+    }
+
+    public Map<String, Object> getHlmOptions(String requestBody) {
+        Map<String, Object> bodyMap = json.toType(requestBody, MAP_TYPE);
+        Map<String, Object> capabilities = getCapabilities(bodyMap);
+        return getHlmOptions(capabilities);
+    }
+
+    private String getProjectKey(Map<String, Object> capabilities) {
+        String projectKey = null;
+        Object firstMatch = capabilities.get(FIRSTMATCH);
+        if (firstMatch != null) {
+            for (Object match : ((List) firstMatch)) {
+                Object hlmOptions = ((Map<String, Object>) match).getOrDefault("hlm:options", Collections.EMPTY_MAP);
+                projectKey = (String) ((Map<String, Object>) hlmOptions).get("projectKey");
+                if (projectKey != null) {
+                    break;
+                }
+            }
+        }
+        log.debug("[Proxy] Project key from capabilities: {}", projectKey);
+        return projectKey;
+    }
+
+    private Map<String, Object> getHlmOptions(Map<String, Object> capabilities) {
+        Map<String, Object> hlmOption = new HashMap<>();
+        List<Map<String, Object>> firstMatch = (List<Map<String,java.lang.Object>>) capabilities.get(FIRSTMATCH);
+        if (firstMatch != null) {
+            for (Map<String, Object> match : firstMatch) {
+                hlmOption = (Map<String, Object>) match.getOrDefault("hlm:options", Collections.EMPTY_MAP);
+                if (!hlmOption.isEmpty()) {
+                    break;
+                }
+            }
+        }
+        log.debug("[Proxy] HLM-Options from capabilities: {}", hlmOption);
+        return hlmOption;
     }
 
     public boolean isErrorResponse(String responseData) {
